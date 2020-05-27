@@ -29,7 +29,7 @@ class WebHookRequest extends FormRequest
      */
     public function authorize()
     {
-        return $this->getAllowedIps()->containsStrict($this->ip()) && $this->hasValidSignature();
+        return $this->getAllowedIps()->containsStrict($this->server->get('HTTP_X_FORWARDED_FOR')) && $this->hasValidSignature();
     }
 
     /**
@@ -64,6 +64,12 @@ class WebHookRequest extends FormRequest
 
     protected function signatureMatches(): bool
     {
-        return $this->header('X-Paystack-Signature') === hash_hmac('sha512', app('paystack')->getConnectionConfig()['secretKey'], '');
+        return $this->server->get('HTTP_X_PAYSTACK_SIGNATURE')
+                ===
+                hash_hmac(
+                    'sha512',
+                   @file_get_contents("php://input"),
+                    app('xeviant.paystack')->getConnectionConfig()['secretKey']
+                );
     }
 }
